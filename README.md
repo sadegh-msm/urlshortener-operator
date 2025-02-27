@@ -4,6 +4,8 @@ The **urlshortener-operator** is a Kubernetes operator that automates the deploy
 ## Description
 The urlshortener-operator simplifies the process of deploying a URL shortener service on Kubernetes. By using Kubernetes Custom Resources, this operator allows you to define a target URL (and an optional expiration time) and automatically generate a shortened URL for it. The operator continuously reconciles the resource status—updating fields like the short path, click count, and validity of the URL. With this solution, you can integrate URL shortening directly into your Kubernetes workflows and CI/CD pipelines, while benefiting from Kubernetes’ robust management and scaling features.
 
+<img src="./resources/diagram.png" width="580" height="350" />
+
 ## **Overview**
 The `urlshortener-operator` simplifies the process of running a URL shortening service in Kubernetes by:
 - **Managing Custom Resources (ShortURL CRD)**: It defines a `ShortURL` custom resource that allows users to create shortened URLs and track their metadata (e.g., click count, validity).
@@ -90,7 +92,7 @@ make uninstall
 make undeploy
 ```
 
-**If you installed with Helm**
+**If you installed with Helm:**
 
 ```sh
 helm uninstall urlshortener-operator -n urlshortener-operator-system
