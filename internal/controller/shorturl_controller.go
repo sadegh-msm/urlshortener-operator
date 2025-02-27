@@ -17,7 +17,11 @@ limitations under the License.
 package controller
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
+	"net/http"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +36,8 @@ type ShortURLReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
+
+var ShortenerServiceURL = "http://urlshortener-api.default.svc.cluster.local:8080"
 
 // +kubebuilder:rbac:groups=urlshortener.shortener.io,resources=shorturls,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=urlshortener.shortener.io,resources=shorturls/status,verbs=get;update;patch
@@ -49,9 +55,81 @@ type ShortURLReconciler struct {
 func (r *ShortURLReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	var shortURL urlshortenerv1.ShortURL
+	if err := r.Get(ctx, req.NamespacedName, &shortURL); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if shortURL.Status.ShortPath == "" {
+		shortenPath, err := shortenURL(shortURL.Spec.TargetURL)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		shortURL.Status.ShortPath = shortenPath
+		shortURL.Status.ClickCount = 0
+		if err := r.Status().Update(ctx, &shortURL); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	clickCnt, err := getClickCount(shortURL.Status.ShortPath)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	shortURL.Status.ClickCount = clickCnt
 
 	return ctrl.Result{}, nil
+}
+
+func shortenURL(longURL string) (string, error) {
+	url := ShortenerServiceURL + "/shorten"
+
+	requestBody, err := json.Marshal(map[string]string{"long_url": longURL})
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	var result map[string]string
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", err
+	}
+
+	return result["short_url"], nil
+}
+
+func getClickCount(shortURL string) (int, error) {
+	url := ShortenerServiceURL + "/count/" + shortURL
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	var result map[string]int
+	if err := json.Unmarshal(body, &result); err != nil {
+		return 0, err
+	}
+
+	return result["click_count"], nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
