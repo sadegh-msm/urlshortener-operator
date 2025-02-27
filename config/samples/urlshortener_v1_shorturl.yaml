@@ -1,0 +1,9 @@
+apiVersion: urlshortener.shortener.io/v1
+kind: ShortURL
+metadata:
+  labels:
+    app.kubernetes.io/name: urlshortener-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: shorturl-sample
+spec:
+  # TODO(user): Add fields here
