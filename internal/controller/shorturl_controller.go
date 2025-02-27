@@ -26,7 +26,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 
 	urlshortenerv1 "urlshortener-operator/api/v1"
 )
@@ -53,7 +59,14 @@ var ShortenerServiceURL = "http://urlshortener-api.default.svc.cluster.local:808
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.2/pkg/reconcile
 func (r *ShortURLReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	err := r.ensureShortenerDeployment(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.ensureShortenerService(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	var shortURL urlshortenerv1.ShortURL
 	if err := r.Get(ctx, req.NamespacedName, &shortURL); err != nil {
@@ -79,6 +92,9 @@ func (r *ShortURLReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	shortURL.Status.ClickCount = clickCnt
+	if err := r.Status().Update(ctx, &shortURL); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -130,6 +146,82 @@ func getClickCount(shortURL string) (int, error) {
 	}
 
 	return result["click_count"], nil
+}
+
+// ensureShortenerDeployment creates the Deployment for the shortener API if it does not exist.
+func (r *ShortURLReconciler) ensureShortenerDeployment(ctx context.Context) error {
+	deployment := &appsv1.Deployment{}
+	err := r.Get(ctx, client.ObjectKey{Name: "urlshortener-api", Namespace: "default"}, deployment)
+	if err != nil && apierrors.IsNotFound(err) {
+		deployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "urlshortener-api",
+				Namespace: "default",
+				Labels:    map[string]string{"app": "urlshortener-api"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: pointer.Int32Ptr(1),
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": "urlshortener-api"},
+				},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{"app": "urlshortener-api"},
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{
+							{
+								Name:  "urlshortener-api",
+								Image: "docker.io/sadegh81/url-shortener:v1",
+								Ports: []corev1.ContainerPort{
+									{
+										ContainerPort: 8080,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		if err := r.Create(ctx, deployment); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ensureShortenerService creates the Service for the shortener API if it does not exist.
+func (r *ShortURLReconciler) ensureShortenerService(ctx context.Context) error {
+	service := &corev1.Service{}
+	err := r.Get(ctx, client.ObjectKey{Name: "urlshortener-api", Namespace: "default"}, service)
+	if err != nil && apierrors.IsNotFound(err) {
+		service = &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "urlshortener-api",
+				Namespace: "default",
+			},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{"app": "urlshortener-api"},
+				Ports: []corev1.ServicePort{
+					{
+						Port:       8080,
+						TargetPort: intstr.FromInt(8080),
+						Protocol:   corev1.ProtocolTCP,
+					},
+				},
+				Type: corev1.ServiceTypeClusterIP,
+			},
+		}
+		if err := r.Create(ctx, service); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

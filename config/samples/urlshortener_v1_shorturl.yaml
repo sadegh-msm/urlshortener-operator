@@ -6,4 +6,4 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: shorturl-sample
 spec:
-  # TODO(user): Add fields here
+  targetURL: "https://google.com"
