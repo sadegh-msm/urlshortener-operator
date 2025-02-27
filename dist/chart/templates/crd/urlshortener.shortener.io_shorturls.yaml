@@ -1,0 +1,83 @@
+{{- if .Values.crd.enable }}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  annotations:
+    {{- if .Values.crd.keep }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+    controller-gen.kubebuilder.io/version: v0.17.2
+  name: shorturls.urlshortener.shortener.io
+spec:
+  group: urlshortener.shortener.io
+  names:
+    kind: ShortURL
+    listKind: ShortURLList
+    plural: shorturls
+    shortNames:
+    - sl
+    singular: shorturl
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.shortPath
+      name: ShortPath
+      type: string
+    - jsonPath: .status.clickCount
+      name: ClickCount
+      type: integer
+    - jsonPath: .status.isValid
+      name: IsValid
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ShortURL is the Schema for the shorturls API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ShortURLSpec defines the desired state of ShortURL.
+            properties:
+              expireAt:
+                format: date-time
+                type: string
+              targetURL:
+                type: string
+            required:
+            - targetURL
+            type: object
+          status:
+            description: ShortURLStatus defines the observed state of ShortURL.
+            properties:
+              clickCount:
+                type: integer
+              isValid:
+                type: string
+              shortPath:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+{{- end -}}

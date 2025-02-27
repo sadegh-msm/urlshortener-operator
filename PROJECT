@@ -5,6 +5,8 @@
 domain: shortener.io
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: urlshortener-operator
 repo: urlshortener-operator
 resources:

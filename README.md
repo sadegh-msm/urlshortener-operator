@@ -1,8 +1,32 @@
-# urlshortener-operator
-// TODO(user): Add simple overview of use/purpose
+# URLShortener-operator
+The **urlshortener-operator** is a Kubernetes operator that automates the deployment and management of a URL shortening service inside your cluster. It provides a custom resource definition (CRD) called **ShortURL** that allows users to easily create, update, and manage shortened URLs. The operator also keeps track of click counts and validity status for each URL, ensuring that the shortened links remain active and useful.
 
 ## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+The urlshortener-operator simplifies the process of deploying a URL shortener service on Kubernetes. By using Kubernetes Custom Resources, this operator allows you to define a target URL (and an optional expiration time) and automatically generate a shortened URL for it. The operator continuously reconciles the resource status—updating fields like the short path, click count, and validity of the URL. With this solution, you can integrate URL shortening directly into your Kubernetes workflows and CI/CD pipelines, while benefiting from Kubernetes’ robust management and scaling features.
+
+## **Overview**
+The `urlshortener-operator` simplifies the process of running a URL shortening service in Kubernetes by:
+- **Managing Custom Resources (ShortURL CRD)**: It defines a `ShortURL` custom resource that allows users to create shortened URLs and track their metadata (e.g., click count, validity).
+- **Ensuring Deployment and Service Availability**: The operator reconciles the state of the URL shortener API and ensures it is running and accessible.
+- **Handling Short URL Creation and Updates**: When a `ShortURL` resource is created, the operator interacts with the URL shortening API to generate a short path and update the resource’s status accordingly.
+- **Periodic Reconciliation**: The operator periodically checks and updates the `ShortURL` status, including click counts and validity.
+
+
+```yaml
+apiVersion: urlshortener.shortener.io/v1
+kind: ShortURL
+metadata:
+  labels:
+    app.kubernetes.io/name: urlshortener-operator
+  name: shorturl-sample-github
+spec:
+  targetURL: "https://github.com"
+  expireAt: "2025-02-26T16:55:00Z"
+```
+
+after applying ShortURL manifests:
+
+<img src="./resources/sl.png" width="450" height="120" />
 
 ## Getting Started
 
@@ -12,16 +36,21 @@
 - kubectl version v1.11.3+.
 - Access to a Kubernetes v1.11.3+ cluster.
 
-### To Deploy on the cluster
+### Easy install (using Helm)
+**Install the crd using helm chart in you cluster**
+```sh 
+cd dist/chart
+
+helm install urlshortener-operator -f values.yaml . -n urlshortener-operator-system
+```
+Just do this and you are good to go.
+
+### Install with manifests
 **Build and push your image to the location specified by `IMG`:**
 
 ```sh
 make docker-build docker-push IMG=<some-registry>/urlshortener-operator:tag
 ```
-
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
 
 **Install the CRDs into the cluster:**
 
@@ -35,17 +64,12 @@ make install
 make deploy IMG=<some-registry>/urlshortener-operator:tag
 ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
-
 **Create instances of your solution**
 You can apply the samples (examples) from the config/sample:
 
 ```sh
 kubectl apply -k config/samples/
 ```
-
->**NOTE**: Ensure that the samples has default values to test it out.
 
 ### To Uninstall
 **Delete the instances (CRs) from the cluster:**
@@ -66,70 +90,8 @@ make uninstall
 make undeploy
 ```
 
-## Project Distribution
-
-Following the options to release and provide this solution to the users.
-
-### By providing a bundle with all YAML files
-
-1. Build the installer for the image built and published in the registry:
+**If you installed with Helm**
 
 ```sh
-make build-installer IMG=<some-registry>/urlshortener-operator:tag
+helm uninstall urlshortener-operator -n urlshortener-operator-system
 ```
-
-**NOTE:** The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without its
-dependencies.
-
-2. Using the installer
-
-Users can just run 'kubectl apply -f <URL for YAML BUNDLE>' to install
-the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/urlshortener-operator/<tag or branch>/dist/install.yaml
-```
-
-### By providing a Helm Chart
-
-1. Build the chart using the optional helm plugin
-
-```sh
-kubebuilder edit --plugins=helm/v1-alpha
-```
-
-2. See that a chart was generated under 'dist/chart', and users
-can obtain this solution from there.
-
-**NOTE:** If you change the project, you need to update the Helm Chart
-using the same command above to sync the latest changes. Furthermore,
-if you create webhooks, you need to use the above command with
-the '--force' flag and manually ensure that any custom configuration
-previously added to 'dist/chart/values.yaml' or 'dist/chart/manager/manager.yaml'
-is manually re-applied afterwards.
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
