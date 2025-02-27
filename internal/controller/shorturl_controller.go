@@ -75,7 +75,7 @@ func (r *ShortURLReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		shortURL.Status.ShortPath = shortenPath
 		shortURL.Status.ClickCount = 0
-		shortURL.Status.IsValid = "unkown"
+		shortURL.Status.IsValid = "unknown"
 		if err := r.Status().Update(ctx, &shortURL); err != nil {
 			return ctrl.Result{}, err
 		}
