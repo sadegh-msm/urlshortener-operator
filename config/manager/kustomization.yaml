@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: docker.io/sadegh81/urlshortener-operator
-  newTag: v1
+  newTag: v5

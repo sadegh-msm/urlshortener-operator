@@ -7,3 +7,14 @@ metadata:
   name: shorturl-sample
 spec:
   targetURL: "https://google.com"
+---
+apiVersion: urlshortener.shortener.io/v1
+kind: ShortURL
+metadata:
+  labels:
+    app.kubernetes.io/name: urlshortener-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: shorturl-sample-2
+spec:
+  targetURL: "https://github.com"
+  expireAt: "2025-02-26T16:55:00Z"

@@ -11,10 +11,22 @@ spec:
     kind: ShortURL
     listKind: ShortURLList
     plural: shorturls
+    shortNames:
+    - sl
     singular: shorturl
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - jsonPath: .status.shortPath
+      name: ShortPath
+      type: string
+    - jsonPath: .status.clickCount
+      name: ClickCount
+      type: integer
+    - jsonPath: .status.isValid
+      name: IsValid
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: ShortURL is the Schema for the shorturls API.
@@ -39,6 +51,9 @@ spec:
           spec:
             description: ShortURLSpec defines the desired state of ShortURL.
             properties:
+              expireAt:
+                format: date-time
+                type: string
               targetURL:
                 type: string
             required:
@@ -49,6 +64,8 @@ spec:
             properties:
               clickCount:
                 type: integer
+              isValid:
+                type: string
               shortPath:
                 type: string
             type: object

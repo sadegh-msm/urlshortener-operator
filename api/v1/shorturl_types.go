@@ -22,17 +22,23 @@ import (
 
 // ShortURLSpec defines the desired state of ShortURL.
 type ShortURLSpec struct {
-	TargetURL string `json:"targetURL"`
+	TargetURL string       `json:"targetURL"`
+	ExpireAt  *metav1.Time `json:"expireAt,omitempty"`
 }
 
 // ShortURLStatus defines the observed state of ShortURL.
 type ShortURLStatus struct {
 	ShortPath  string `json:"shortPath,omitempty"`
 	ClickCount int    `json:"clickCount,omitempty"`
+	IsValid    string `json:"isValid,omitempty"`
 }
 
+// +kubebuilder:resource:shortName=sl
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="ShortPath",type=string,JSONPath=".status.shortPath"
+// +kubebuilder:printcolumn:name="ClickCount",type=integer,JSONPath=".status.clickCount"
+// +kubebuilder:printcolumn:name="IsValid",type=string,JSONPath=".status.isValid"
 
 // ShortURL is the Schema for the shorturls API.
 type ShortURL struct {
